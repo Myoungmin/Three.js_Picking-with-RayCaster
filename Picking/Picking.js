@@ -7,6 +7,37 @@ class Particle {
         // 넘겨받은 파라미터로 Mesh 위치 설정
         mesh.position.set(x, y, 0);
         scene.add(mesh);
+        // Particle 객체에서 생성한 mesh의 wrapper 속성에 Particle 객체를 저장해둔다.
+        // 마우스 커서와 교차하는 mesh를 생성한 Particle 객체에 접근하기 위한 목적
+        mesh.wrapper = this;
+        this.awakenTime = undefined;
+        this._mesh = mesh;
+    }
+
+    // update 메서드에서 호출
+    // 마우스가 큐브위에 있으면 awake 메서드가 호출된다.
+    awake(time) {
+        // awakenTime이 설정되지 않았다면
+        if (!this.awakenTime) {
+            // 넘어온 time 인자로 awakenTime 설정
+            this.awakenTime = time;
+        }
+    }
+
+    // Particle 객체의 상태값 변경을 위한 메서드
+    update(time) {
+        // awakenTime이 설정되었다면
+        if (this.awakenTime) {
+            // 12초 시간 설정
+            const period = 12.0;
+            // 현재 시간과 awakenTime이 설정된 시간의 차를 구한다.
+            const t = time - this.awakenTime;
+            // 시간 차가 12초를 경과하면 다시 awakenTime을 undefined로 설정
+            if (t >= period) this.awakenTime = undefined;
+
+            // 큐브를 x축으로 회전
+            this._mesh.rotation.x = Three.MathUtils.lerp(0, Math.PI * 2 * period, t / period);
+        }
     }
 }
 
@@ -44,6 +75,8 @@ class App {
         this._setupModel();
         // 마우스 컨트롤 설정
         this._setupControls();
+        // 마우스 Picking 설정
+        this._setupPicking();
 
 
         // 창 크기가 변경될 때 발생하는 이벤트인 onresize에 App 클래스의 resize 메서드를 연결한다.
@@ -111,6 +144,30 @@ class App {
         new OrbitControls(this._camera, this._divContainer);
     }
 
+    _setupPicking() {
+        // 카메라의 위치에서 출발해서 마우스 커서 위치 방향으로 직진하는 광선 생성
+        // 이 광선과 충돌하는 Mesh를 확인할 수 있다.
+        const raycaster = new Three.Raycaster();
+        raycaster.cursorNormalizedPosition = undefined;
+        this._divContainer.addEventListener("mousemove", this._onMouseMove.bind(this));
+
+        this._raycaster = raycaster;
+    }
+
+    _onMouseMove(event) {
+        const width = this._divContainer.clientWidth;
+        const height = this._divContainer.clientHeight;
+
+        // 마우스 위치를 -1 ~ 1 사이로 정규화 해야한다.
+        const x = (event.offsetX / width) * 2 - 1;
+        // y값은 마이너스로 정규화
+        // 일반적인 2D 화면은 아래쪽 방향으로 증가하기 때문에 좌표를 뒤집는다.
+        const y = -(event.offsetY / height) * 2 + 1;
+
+        // 현재 마우스 좌표를 Raycaster 객체의 cursorNormalizedPosition 속성에 저장한다.
+        this._raycaster.cursorNormalizedPosition = { x, y };
+    }
+
     resize() {
         // 3D 그래픽을 출력할 영역 width, height 얻어오기
         const width = this._divContainer.clientWidth;
@@ -137,6 +194,28 @@ class App {
     update(time) {
         // 밀리초에서 초로 변환
         time *= 0.001;
+
+        // 마우스 위치에 있는 큐브를 얻는다.
+        if (this._raycaster && this._raycaster.cursorNormalizedPosition) {
+            this._raycaster.setFromCamera(this._raycaster.cursorNormalizedPosition, this._camera);
+            // 광선과 교차하는 객체들을 얻는다.
+            const targets = this._raycaster.intersectObjects(this._scene.children);
+            // 교차하는 객체가 한 개 이상이면 가장 가까운 객체를 선택한다.
+            if (targets.length > 0) {
+                // 0 인덱스가 가장 가깝다.
+                const mesh = targets[0].object;
+                // mesh에 연결된 Particle 객체에 접근할 수 있다.
+                const particle = mesh.wrapper;
+                // Particle 객체의 awake 메서드를 time 인자를 전달하여 호출
+                particle.awake(time);
+            }
+        }
+
+        this._scene.traverse((obj3d) => {
+            if (obj3d instanceof Three.Mesh) {
+                obj3d.wrapper.update(time);
+            }
+        });
     }
 }
 
