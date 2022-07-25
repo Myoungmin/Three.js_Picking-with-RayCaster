@@ -1,6 +1,15 @@
 import * as Three from '../three.js/three.module.js';
 import { OrbitControls } from '../three.js/OrbitControls.js';
 
+class Particle {
+    constructor(scene, geometry, material, x, y) {
+        const mesh = new Three.Mesh(geometry, material);
+        // 넘겨받은 파라미터로 Mesh 위치 설정
+        mesh.position.set(x, y, 0);
+        scene.add(mesh);
+    }
+}
+
 class App {
     constructor() {
         // id가 webgl-container인 div요소를 얻어와서, 상수에 저장 
@@ -61,7 +70,7 @@ class App {
             0.1,
             100
         );
-        camera.position.z = 2;
+        camera.position.z = 40;
         // 다른 메서드에서 참조할 수 있도록 필드에 정의한다.
         this._camera = camera;
     }
@@ -84,19 +93,18 @@ class App {
     }
 
     _setupModel() {
-        // 정육면체 Geometry 객체 생성
-        // width, height, depth 인자를 모두 1로 설정하여 생성한다.
-        const geometry = new Three.BoxGeometry(1, 1, 1);
-        // 파란색 material 생성
-        const material = new Three.MeshPhongMaterial({ color: 0x44a88 });
+        const geometry = new Three.BoxGeometry();
 
-        // Geometry와 Material를 이용하여 Mesh가 생성된다.
-        const cube = new Three.Mesh(geometry, material);
+        for (let x = -20; x <= 20; x += 1.1) {
+            for (let y = -20; y <= 20; y += 1.1) {
+                const color = new Three.Color();
+                color.setHSL(0, 0, 0.1);
+                const material = new Three.MeshStandardMaterial({ color });
 
-        // 생성한 Mesh를 Scene 객체에 구가
-        this._scene.add(cube);
-        // 다른 메서드에서 참조할 수 있도록 필드에 정의한다.
-        this._cube = cube;
+                // 정의한 Particle 클래스로 인스턴스 반복적으로 생성
+                new Particle(this._scene, geometry, material, x, y);
+            }
+        }
     }
 
     _setupControls() {
