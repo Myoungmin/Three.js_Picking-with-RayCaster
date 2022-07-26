@@ -52,6 +52,9 @@ class Particle {
 
             // 설정한 h, s, l 값 Mesh의 color에 적용
             this._mesh.material.color.setHSL(h_s, h_s, l);
+
+            // 설정한 h_s값을 이용하여, z값을 변경하여 돌출되는 애니메이션 효과 적용
+            this._mesh.position.z = h_s * 15.0;
         }
     }
 }
