@@ -36,7 +36,22 @@ class Particle {
             if (t >= period) this.awakenTime = undefined;
 
             // 큐브를 x축으로 회전
+            // lerp : Linear interpolation
             this._mesh.rotation.x = Three.MathUtils.lerp(0, Math.PI * 2 * period, t / period);
+
+            let h_s, l;
+
+            // 시간에 따라 선형 보간으로  h, s, l 값 변경
+            if (t < period / 2) {
+                h_s = Three.MathUtils.lerp(0.0, 1.0, t / (period / 2.0));
+                l = Three.MathUtils.lerp(0.1, 1.0, t / (period / 2.0));
+            } else {
+                h_s = Three.MathUtils.lerp(1.0, 0.0, t / (period / 2.0) - 1);
+                l = Three.MathUtils.lerp(1.0, 0.1, t / (period / 2.0) - 1);
+            }
+
+            // 설정한 h, s, l 값 Mesh의 color에 적용
+            this._mesh.material.color.setHSL(h_s, h_s, l);
         }
     }
 }
